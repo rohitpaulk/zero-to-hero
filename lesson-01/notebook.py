@@ -10,8 +10,10 @@ def _():
     import numpy as np
     import matplotlib.pyplot as plt
     import marimo as mo
+    import pytest
+    from graphlib import TopologicalSorter
 
-    return (mo,)
+    return TopologicalSorter, math, mo
 
 
 @app.cell(hide_code=True)
@@ -21,7 +23,7 @@ def _(mo):
         def render(cls, value):
             def _format_value_text(node):
                 _label = f"{node.label}<br/>" if node.label else ""
-                return f"{_label}data: {node.data}<br/>grad: {node.grad}".replace(
+                return f"{_label}data: {node.data:.2f}<br/>grad: {node.grad:.2f}".replace(
                     '"', '\\"'
                 )
 
@@ -54,9 +56,10 @@ def _(mo):
 
 
 @app.cell
-def _(ValueRenderer):
+def _(TopologicalSorter, ValueRenderer, math):
     class Value:
         def __init__(self, data, _children=(), _op="", label=""):
+            self._backward = lambda: None
             self.data = data
             self.grad = 0.0
             self._prev = set(_children)
@@ -64,64 +67,134 @@ def _(ValueRenderer):
             self.label = label
 
         def __repr__(self):
-            return f"Value({self.data})"
+            return f"Value({self.data:.2f}, label={self.label})"
 
         def __add__(self, other):
             out = Value(self.data + other.data, (self, other), "+")
 
-            self._set_and_propagate_gradient(1.0)
-            other._set_and_propagate_gradient(1.0)
+            def _backward():
+                self.grad += out.grad * 1.0
+                other.grad += out.grad * 1.0
+
+            out._backward = _backward
 
             return out
 
         def __mul__(self, other):
             out = Value(self.data * other.data, (self, other), "*")
 
-            self._set_and_propagate_gradient(other.data)
-            other._set_and_propagate_gradient(self.data)
+            def _backward():
+                self.grad += out.grad * other.data
+                other.grad += out.grad * self.data
+
+            out._backward = _backward
 
             return out
 
-        def _set_and_propagate_gradient(self, grad):
-            self.grad = grad
+        def tanh(self):
+            x = self.data
+            e_2x = math.exp(2 * x)
+            t = (e_2x - 1) / (e_2x + 1)
+            out = Value(t, (self,), "tanh")
 
-            for child in self._prev:
-                child.grad *= self.grad
+            def _backward():
+                self.grad += out.grad * (1 - t**2)
+
+            out._backward = _backward
+
+            return out
+
+        def backward(self):
+            self.grad = 1
+
+            for node in self._sorted_node_list():
+                node._backward()
 
         def render(self):
             return ValueRenderer().render(self)
 
+        def _sorted_node_list(self):
+            graph = {}
 
-    a = Value(2.0, label="a")
-    b = Value(-3.0, label="b")
-    c = Value(10.0, label="c")
-    e = a + b
-    e.label = "e"
-    d = e + c
-    d.label = "d"
-    f = Value(-2.0, label="f")
-    L = d * f
-    L.label = "L"
-    L.render()
-    return
+            def build_graph(node):
+                if node not in graph:
+                    graph[node] = node._prev
+                    for child in node._prev:
+                        build_graph(child)
+
+            build_graph(self)
+
+            return reversed(list(TopologicalSorter(graph).static_order()))
+
+
+    # inputs x1,x2
+    x1 = Value(2.0, label="x1")
+    x2 = Value(0.0, label="x2")
+    # weights w1,w2
+    w1 = Value(-3.0, label="w1")
+    w2 = Value(1.0, label="w2")
+    # bias of the neuron
+    b = Value(6.8813735878195432, label="b")
+    # x1*w1 + x2*w2 + b
+    x1w1 = x1 * w1
+    x1w1.label = "x1*w1"
+    x2w2 = x2 * w2
+    x2w2.label = "x2*w2"
+    x1w1x2w2 = x1w1 + x2w2
+    x1w1x2w2.label = "x1*w1 + x2*w2"
+    n = x1w1x2w2 + b
+    n.label = "n"
+    o = n.tanh()
+    o.label = "o"
+
+    o.backward()
+    o.render()
+    return (Value,)
 
 
 @app.cell
-def _():
-    import marimo as mo
+def _(Value):
+    class TestValue:
+        @staticmethod
+        def test_basic_add_grad():
+            a = Value(2.0)
+            b = Value(3.0)
+            c = a + b
+            c.backward()
+            assert b.grad == 1.0
+            assert a.grad == 1.0
 
-    return (mo,)
+        @staticmethod
+        def test_repeated_add_2_grad():
+            a = Value(2.0)
+            b = a + a
+            b.backward()
+            assert a.grad == 2.0
 
+        @staticmethod
+        def test_repeated_add_3_grad():
+            a = Value(2.0)
+            b = a + a + a
+            b.backward()
+            print(list(b._sorted_node_list()))
+            assert a.grad == 3.0
 
-@app.cell
-def _():
-    import marimo as mo
+        @staticmethod
+        def test_repeated_mult_2_grad():
+            a = Value(2.0)
+            b = a * a
+            b.backward()
+            # db/da = 2 * a => 2.0
+            assert a.grad == 4.0
 
-    return (mo,)
+        @staticmethod
+        def test_repeated_mult_3_grad():
+            a = Value(2.0)
+            b = a * a * a
+            b.backward()
+            # db/da = 3 * a ^ 2 => 12.0
+            assert a.grad == 12.0
 
-
-@app.cell
-def _():
     return
 
 
