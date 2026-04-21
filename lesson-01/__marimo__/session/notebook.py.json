@@ -1,0 +1,73 @@
+{
+  "version": "1",
+  "metadata": {
+    "marimo_version": "0.21.1",
+    "script_metadata_hash": null
+  },
+  "cells": [
+    {
+      "id": "Hbol",
+      "code_hash": "08fd72fdf6a715606908106cd09b12c1",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/plain": ""
+          }
+        }
+      ],
+      "console": []
+    },
+    {
+      "id": "Codm",
+      "code_hash": "23016004cda6e012ae89b9a5222e680b",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/plain": ""
+          }
+        }
+      ],
+      "console": []
+    },
+    {
+      "id": "FSbL",
+      "code_hash": "44823ff6b7a24ff5f063aa066f9ac8ef",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/html": "<marimo-mermaid data-diagram='&quot;graph TD&#92;nvalue_4519767824[&#92;&quot;L&lt;br/&gt;data: -18.0&lt;br/&gt;grad: 0.0&#92;&quot;]&#92;nop_4519767824((&#92;&quot;*&#92;&quot;))&#92;nop_4519767824 --&gt; value_4519767824&#92;nvalue_4519993744 --&gt; op_4519767824&#92;nvalue_4519993744[&#92;&quot;d&lt;br/&gt;data: 9.0&lt;br/&gt;grad: -2.0&#92;&quot;]&#92;nop_4519993744((&#92;&quot;+&#92;&quot;))&#92;nop_4519993744 --&gt; value_4519993744&#92;nvalue_4534413072 --&gt; op_4519993744&#92;nvalue_4534413072[&#92;&quot;c&lt;br/&gt;data: 10.0&lt;br/&gt;grad: -2.0&#92;&quot;]&#92;nvalue_4519990704 --&gt; op_4519993744&#92;nvalue_4519990704[&#92;&quot;e&lt;br/&gt;data: -1.0&lt;br/&gt;grad: -2.0&#92;&quot;]&#92;nop_4519990704((&#92;&quot;+&#92;&quot;))&#92;nop_4519990704 --&gt; value_4519990704&#92;nvalue_4533203840 --&gt; op_4519990704&#92;nvalue_4533203840[&#92;&quot;a&lt;br/&gt;data: 2.0&lt;br/&gt;grad: 1.0&#92;&quot;]&#92;nvalue_4534409872 --&gt; op_4519990704&#92;nvalue_4534409872[&#92;&quot;b&lt;br/&gt;data: -3.0&lt;br/&gt;grad: 1.0&#92;&quot;]&#92;nvalue_4545508944 --&gt; op_4519767824&#92;nvalue_4545508944[&#92;&quot;f&lt;br/&gt;data: -2.0&lt;br/&gt;grad: 9.0&#92;&quot;]&#92;n&quot;'></marimo-mermaid>"
+          }
+        }
+      ],
+      "console": []
+    },
+    {
+      "id": "SuRU",
+      "code_hash": "1d0db38904205bec4d6f6f6a1f6cec3e",
+      "outputs": [
+        {
+          "type": "error",
+          "ename": "multiple-defs",
+          "evalue": "The variable 'mo' was defined by another cell",
+          "traceback": []
+        }
+      ],
+      "console": []
+    },
+    {
+      "id": "EUAS",
+      "code_hash": null,
+      "outputs": [],
+      "console": []
+    },
+    {
+      "id": "uzUl",
+      "code_hash": null,
+      "outputs": [],
+      "console": []
+    }
+  ]
+}
