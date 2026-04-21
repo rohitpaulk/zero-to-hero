@@ -13,8 +13,9 @@ def _():
     import pytest
     from graphlib import TopologicalSorter
     import torch
+    import random
 
-    return TopologicalSorter, math, mo, pytest, torch
+    return TopologicalSorter, math, mo, pytest, random, torch
 
 
 @app.cell(hide_code=True)
@@ -59,7 +60,7 @@ def _(mo):
 @app.cell
 def _(Float, TopologicalSorter, ValueRenderer, math):
     class Value:
-        def __init__(self, data, _children=(), _op="", label=""):
+        def __init__(self, data, _children=(), _op="", label=None):
             self._backward = lambda: None
             self.data = data
             self.grad = 0.0
@@ -68,7 +69,10 @@ def _(Float, TopologicalSorter, ValueRenderer, math):
             self.label = label
 
         def __repr__(self):
-            return f"Value({self.data:.2f}, label={self.label})"
+            if self.label is not None:
+                return f"Value({self.data:.2f}, label={self.label})"
+            else:
+                return f"Value({self.data:.2f})"
 
         def __add__(self, other):
             other = other if isinstance(other, Value) else Value(other)
@@ -164,28 +168,32 @@ def _(Float, TopologicalSorter, ValueRenderer, math):
             return reversed(list(TopologicalSorter(graph).static_order()))
 
 
-    # inputs x1,x2
-    x1 = Value(2.0, label="x1")
-    x2 = Value(0.0, label="x2")
-    # weights w1,w2
-    w1 = Value(-3.0, label="w1")
-    w2 = Value(1.0, label="w2")
-    # bias of the neuron
-    b = Value(6.8813735878195432, label="b")
-    # x1*w1 + x2*w2 + b
-    x1w1 = x1 * w1
-    x1w1.label = "x1*w1"
-    x2w2 = x2 * w2
-    x2w2.label = "x2*w2"
-    x1w1x2w2 = x1w1 + x2w2
-    x1w1x2w2.label = "x1*w1 + x2*w2"
-    n = x1w1x2w2 + b
-    n.label = "n"
-    o = n.tanh()
-    o.label = "o"
+    def test_micrograd():
+        # inputs x1,x2
+        x1 = Value(2.0, label="x1")
+        x2 = Value(0.0, label="x2")
+        # weights w1,w2
+        w1 = Value(-3.0, label="w1")
+        w2 = Value(1.0, label="w2")
+        # bias of the neuron
+        b = Value(6.8813735878195432, label="b")
+        # x1*w1 + x2*w2 + b
+        x1w1 = x1 * w1
+        x1w1.label = "x1*w1"
+        x2w2 = x2 * w2
+        x2w2.label = "x2*w2"
+        x1w1x2w2 = x1w1 + x2w2
+        x1w1x2w2.label = "x1*w1 + x2*w2"
+        n = x1w1x2w2 + b
+        n.label = "n"
+        o = n.tanh()
+        o.label = "o"
 
-    o.backward()
-    o.render()
+        o.backward()
+        o.render()
+
+
+    test_micrograd()
     return (Value,)
 
 
@@ -258,13 +266,56 @@ def _(torch):
         w1 = torch.Tensor([-3.0]).double()
         w2 = torch.Tensor([1.0]).double()
         b = torch.Tensor([6.8813735878195432]).double()
-    
+
         for leaf_node in [x1, x2, w1, w2, b]:
             leaf_node.requires_grad = True
-    
-        return torch.tanh(x1*w1 + x2*w2 + b)
+
+        return torch.tanh(x1 * w1 + x2 * w2 + b)
+
 
     use_torch()
+    return
+
+
+@app.cell
+def _(Value, random):
+    class Neuron:
+        def __init__(self, n_input):
+            self.w = [Value(random.uniform(-1, 1)) for _ in range(n_input)]
+            self.b = Value(random.uniform(-1, 1))
+
+        def __call__(self, x):
+            a = sum((wi * xi for wi, xi in zip(self.w, x))) + self.b
+            return a.tanh()
+
+
+    class Layer:
+        def __init__(self, n_input, n_output):
+            self.neurons = [Neuron(n_input) for _ in range(n_output)]
+
+        def __call__(self, x):
+            return [n(x) for n in self.neurons]
+
+
+    class MLP:
+        def __init__(self, n_input, n_outputs):
+            neuron_counts = [n_input, *n_outputs]
+
+            self.layers = [
+                Layer(neuron_counts[i], neuron_counts[i + 1])
+                for i in range(len(neuron_counts) - 1)
+            ]
+
+        def __call__(self, x):
+            for layer in self.layers:
+                x = layer(x)
+
+            return x[0] if len(x) == 1 else x
+
+
+    x = [2.0, 3.0, -1.0]
+    n = MLP(3, [4, 4, 1])
+    n(x)
     return
 
 
