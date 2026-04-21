@@ -12,8 +12,9 @@ def _():
     import marimo as mo
     import pytest
     from graphlib import TopologicalSorter
+    import torch
 
-    return TopologicalSorter, math, mo
+    return TopologicalSorter, math, mo, pytest, torch
 
 
 @app.cell(hide_code=True)
@@ -56,7 +57,7 @@ def _(mo):
 
 
 @app.cell
-def _(TopologicalSorter, ValueRenderer, math):
+def _(Float, TopologicalSorter, ValueRenderer, math):
     class Value:
         def __init__(self, data, _children=(), _op="", label=""):
             self._backward = lambda: None
@@ -70,6 +71,7 @@ def _(TopologicalSorter, ValueRenderer, math):
             return f"Value({self.data:.2f}, label={self.label})"
 
         def __add__(self, other):
+            other = other if isinstance(other, Value) else Value(other)
             out = Value(self.data + other.data, (self, other), "+")
 
             def _backward():
@@ -77,15 +79,50 @@ def _(TopologicalSorter, ValueRenderer, math):
                 other.grad += out.grad * 1.0
 
             out._backward = _backward
-
             return out
 
+        def __neg__(self):
+            return -1 * self
+
+        def __sub__(self, other):
+            return self + (-other)
+
         def __mul__(self, other):
+            other = other if isinstance(other, Value) else Value(other)
             out = Value(self.data * other.data, (self, other), "*")
 
             def _backward():
                 self.grad += out.grad * other.data
                 other.grad += out.grad * self.data
+
+            out._backward = _backward
+            return out
+
+        def __pow__(self, other):
+            assert isinstance(other, int) or isinstance(other, Float)
+            out = Value(self.data**other, (self,), f"^{other}")
+
+            def _backward():
+                self.grad += out.grad * other * (self.data ** (other - 1))
+
+            out._backward = _backward
+            return out
+
+        def __rmul__(self, other):
+            return self * other
+
+        def __radd__(self, other):
+            return self + other
+
+        def __truediv__(self, other):
+            return self * (other**-1)
+
+        def exp(self):
+            e_x = math.exp(self.data)
+            out = Value(e_x, (self,), "e^x")
+
+            def _backward():
+                self.grad += out.grad * e_x
 
             out._backward = _backward
 
@@ -153,7 +190,7 @@ def _(TopologicalSorter, ValueRenderer, math):
 
 
 @app.cell
-def _(Value):
+def _(Value, math, pytest):
     class TestValue:
         @staticmethod
         def test_basic_add_grad():
@@ -195,6 +232,39 @@ def _(Value):
             # db/da = 3 * a ^ 2 => 12.0
             assert a.grad == 12.0
 
+        @staticmethod
+        def test_tanh_forward():
+            a = Value(2.0)
+            b = a.tanh()
+            expected = math.tanh(2.0)
+            assert b.data == pytest.approx(expected)
+
+        @staticmethod
+        def test_tanh_grad():
+            a = Value(2.0)
+            b = a.tanh()
+            b.backward()
+            expected_grad = 1 - math.tanh(2.0) ** 2
+            assert a.grad == pytest.approx(expected_grad)
+
+    return
+
+
+@app.cell
+def _(torch):
+    def use_torch():
+        x1 = torch.Tensor([2.0]).double()
+        x2 = torch.Tensor([0.0]).double()
+        w1 = torch.Tensor([-3.0]).double()
+        w2 = torch.Tensor([1.0]).double()
+        b = torch.Tensor([6.8813735878195432]).double()
+    
+        for leaf_node in [x1, x2, w1, w2, b]:
+            leaf_node.requires_grad = True
+    
+        return torch.tanh(x1*w1 + x2*w2 + b)
+
+    use_torch()
     return
 
 
