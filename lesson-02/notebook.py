@@ -60,5 +60,50 @@ def _(N, i_to_char, plt):
     return
 
 
+@app.cell
+def _(N, i_to_char, torch):
+    generator = torch.Generator().manual_seed(0)
+
+    P = N.float()
+    P = P / P.sum(1, keepdim=True)
+
+    print(N[0][:5])
+    print()
+
+
+    def generate_word():
+        word = []
+        next_char_index = 0
+
+        while True:
+            next_char_index = torch.multinomial(
+                P[next_char_index], num_samples=1, generator=generator
+            ).item()
+
+            if next_char_index == 0:
+                break
+
+            word.append(i_to_char[next_char_index])
+
+        return "".join(word)
+
+
+    for _ in range(10):
+        print(generate_word())
+    return (P,)
+
+
+@app.cell
+def _(N, P):
+    X1 = N.float()
+    X1 = P / P.sum(1, keepdim=True)
+
+    X2 = N.float()
+    X2 = P / P.sum(1)
+
+    (N[0][:5], X1[0][:5], X1.shape, X2[0][:5], X2.shape, X1 == X2, X1[0][1], X2[0][1])
+    return
+
+
 if __name__ == "__main__":
     app.run()
