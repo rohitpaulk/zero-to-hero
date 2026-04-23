@@ -67,9 +67,6 @@ def _(N, i_to_char, torch):
     P = N.float()
     P = P / P.sum(1, keepdim=True)
 
-    print(N[0][:5])
-    print()
-
 
     def generate_word():
         word = []
@@ -94,14 +91,25 @@ def _(N, i_to_char, torch):
 
 
 @app.cell
-def _(N, P):
-    X1 = N.float()
-    X1 = P / P.sum(1, keepdim=True)
+def _(P, char_to_i, torch, words):
+    def calculate_loss():
+        logprobs = []
 
-    X2 = N.float()
-    X2 = P / P.sum(1)
+        for word in words:
+            word_chars = [".", *word, "."]
 
-    (N[0][:5], X1[0][:5], X1.shape, X2[0][:5], X2.shape, X1 == X2, X1[0][1], X2[0][1])
+            for ch1, ch2 in zip(word_chars, word_chars[1:]):
+                i1 = char_to_i[ch1]
+                i2 = char_to_i[ch2]
+
+                p_bigram = P[i1, i2]
+                logp_bigram = torch.log(p_bigram)
+                logprobs.append(logp_bigram)
+
+        return -sum(logprobs) / len(logprobs)
+
+
+    calculate_loss()
     return
 
 
