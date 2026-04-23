@@ -12,8 +12,10 @@ def _():
     import marimo as mo
     import torch
     from pathlib import Path
+    import torch.nn.functional as F
+    from einops import rearrange, reduce, repeat
 
-    return Path, plt, torch
+    return F, Path, plt, reduce, torch
 
 
 @app.cell
@@ -73,9 +75,7 @@ def _(N, i_to_char, torch):
         next_char_index = 0
 
         while True:
-            next_char_index = torch.multinomial(
-                P[next_char_index], num_samples=1, generator=generator
-            ).item()
+            next_char_index = torch.multinomial(P[next_char_index], num_samples=1, generator=generator).item()
 
             if next_char_index == 0:
                 break
@@ -87,7 +87,7 @@ def _(N, i_to_char, torch):
 
     for _ in range(10):
         print(generate_word())
-    return (P,)
+    return P, generator
 
 
 @app.cell
@@ -110,6 +110,87 @@ def _(P, char_to_i, torch, words):
 
 
     calculate_loss()
+    return
+
+
+@app.cell
+def _(char_to_i, words):
+    def build_training_data():
+        x_train = []
+        y_train = []
+
+        for word in words:
+            chars = [".", *word, "."]
+            for prev_char, next_char in zip(chars, chars[1:]):
+                x_train.append(char_to_i[prev_char])
+                y_train.append(char_to_i[next_char])
+
+        return (x_train, y_train)
+
+
+    x_train, y_train = build_training_data()
+    return x_train, y_train
+
+
+@app.cell
+def _(F, generator, reduce, torch, x_train, y_train):
+    generator.manual_seed(0)
+
+    W = torch.randn((27, 27), generator=generator, requires_grad=True)
+    x_enc = F.one_hot(torch.tensor(x_train), num_classes=27).float()
+
+    loss = None
+
+    for i in range(100):
+        # Forward pass
+        logprobs = (x_enc @ W).exp()
+        probs = logprobs / reduce(logprobs, "x logprobs -> x 1", "sum")
+        loss = -probs[torch.arange(len(x_train)), y_train].log().mean()
+
+        W.grad = None
+        loss.backward()
+
+        with torch.no_grad():
+            W -= 100 * W.grad
+
+        if (i + 1) % 10 == 0:
+            print(f"epoch {i + 1}: {loss.item()}")
+    return (W,)
+
+
+@app.cell
+def _(F, W, char_to_i, generator, i_to_char, reduce, torch):
+    generator.manual_seed(0)
+
+
+    def generate_nn_word():
+        current_char = "."
+        chars = []
+
+        while True:
+            current_char_i = char_to_i[current_char]
+            current_char_enc = F.one_hot(torch.tensor([current_char_i]), num_classes=27).float()
+            logprobs = (current_char_enc @ W).exp()
+            probs = (logprobs / reduce(logprobs, "x logprobs -> x 1", "sum"))[0]
+
+            next_char_i = torch.multinomial(probs, num_samples=1, generator=generator).item()
+            next_char = i_to_char[next_char_i]
+
+            if next_char == ".":
+                break
+
+            chars.append(next_char)
+            current_char = next_char
+
+        return "".join(chars)
+
+
+    [generate_nn_word() for _ in range(5)]
+    return
+
+
+@app.cell
+def _():
     return
 
 
