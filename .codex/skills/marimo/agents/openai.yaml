@@ -1,0 +1,4 @@
+interface:
+  display_name: "Zero to Hero Marimo"
+  short_description: "Run marimo from lesson dirs via uv"
+  default_prompt: "Use $marimo to launch or manage marimo notebooks in this zero-to-hero repo with uv from the lesson directory."
