@@ -35,7 +35,7 @@ def _(Path):
 
 @app.cell
 def _(char_to_i, i_to_char, torch, words):
-    block_size = 4
+    block_size = 3
     X, Y = [], []
 
     for word in words[:5]:
@@ -67,6 +67,35 @@ def _(char_to_i, torch):
 @app.cell
 def _(C, X):
     X_embedded = C[X]
+    X_embedded.shape
+    return (X_embedded,)
+
+
+@app.cell
+def _(X_embedded, torch):
+    W1 = torch.randn((6, 100))
+    b1 = torch.randn(100)
+
+    h = torch.tanh(X_embedded.view(-1, 6) @ W1 + b1)
+    h.shape
+    return (h,)
+
+
+@app.cell
+def _(h, torch):
+    W2 = torch.randn((100, 27))
+    b2 = torch.randn(27)
+
+    logits = h @ W2 + b2
+    logits.shape
+    return (logits,)
+
+
+@app.cell
+def _(logits):
+    counts = logits.exp()
+    probs = counts / counts.sum(1, keepdim=True)
+
     return
 
 
