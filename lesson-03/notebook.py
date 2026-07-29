@@ -15,7 +15,7 @@ def _():
     import torch.nn.functional as F
     from einops import rearrange, reduce, repeat
 
-    return F, Path, torch
+    return F, Path, plt, torch
 
 
 @app.cell
@@ -35,7 +35,7 @@ def _(Path):
 
 @app.cell
 def _(char_to_i, i_to_char, torch, words):
-    block_size = 3
+    block_size = 4
     X, Y = [], []
 
     for word in words:
@@ -64,22 +64,23 @@ def _(char_to_i, i_to_char, torch, words):
     X_train, Y_train = train_dataset[:]
     X_dev, Y_dev = dev_dataset[:]
     X_test, Y_test = test_dataset[:]
-    return X_test, X_train, Y_test, Y_train
+    return X_test, X_train, Y_test, Y_train, block_size
 
 
 @app.cell
-def _(char_to_i, torch):
+def _(block_size, char_to_i, torch):
     # Generator (for reproducability)
     g = torch.Generator().manual_seed(1)
 
     # Embedding matrix (maps 27 chars -> 2D space)
-    C = torch.randn([len(char_to_i), 2])
-    W1 = torch.randn((6, 100))
-    b1 = torch.randn(100)
-    W2 = torch.randn((100, 27))
+    embedding_dimensions = 8
+    C = torch.randn([len(char_to_i), embedding_dimensions])
+    W1 = torch.randn((block_size * embedding_dimensions, 300))
+    b1 = torch.randn(300)
+    W2 = torch.randn((300, 27))
     b2 = torch.randn(27)
     parameters = [C, W1, b1, W2, b2]
-    return C, W1, W2, b1, b2, parameters
+    return C, W1, W2, b1, b2, embedding_dimensions, parameters
 
 
 @app.cell
@@ -94,12 +95,14 @@ def _(
     Y_train,
     b1,
     b2,
+    block_size,
+    embedding_dimensions,
     parameters,
     torch,
 ):
     def _calculate_loss(x, y):
         x_embedded = C[x]
-        h = torch.tanh(x_embedded.view(-1, 6) @ W1 + b1)
+        h = torch.tanh(x_embedded.view(-1, block_size * embedding_dimensions) @ W1 + b1)
         logits = h @ W2 + b2
 
         loss = F.cross_entropy(logits, y)
@@ -117,7 +120,7 @@ def _(
         return
 
     _()
-    return (calculate_training_loss,)
+    return calculate_test_loss, calculate_training_loss
 
 
 @app.cell
@@ -130,13 +133,18 @@ def _(
     Y_train,
     b1,
     b2,
+    block_size,
     calculate_training_loss,
+    embedding_dimensions,
     parameters,
+    plt,
     torch,
 ):
-    batch_size = 128
+    batch_size = 32
 
-    for loop_index in range(5000):
+    losses = []
+
+    for loop_index in range(100000):
         batch_indices = torch.randint(0, len(X_train), (batch_size,))
 
         X_batch = X_train[batch_indices]
@@ -144,7 +152,7 @@ def _(
 
         # Forward pass
         X_embedded = C[X_batch]
-        h = torch.tanh(X_embedded.view(-1, 6) @ W1 + b1)
+        h = torch.tanh(X_embedded.view(-1, block_size * embedding_dimensions) @ W1 + b1)
         logits = h @ W2 + b2
 
         loss = F.cross_entropy(logits, Y_batch)
@@ -154,11 +162,22 @@ def _(
 
         loss.backward()
 
-        if loop_index % 100 == 0:
-            print(calculate_training_loss())
-
         for p in parameters:
-            p.data -= 0.005 * p.grad
+            p.data -= 0.001 * p.grad
+
+        if loop_index % 1000 == 0:
+            training_loss = calculate_training_loss()
+            losses.append(training_loss)
+            print(training_loss)
+
+
+    plt.plot(losses)
+    return
+
+
+@app.cell
+def _(calculate_test_loss):
+    print(calculate_test_loss())
     return
 
 
