@@ -15,7 +15,7 @@ def _():
     import torch.nn.functional as F
     from einops import rearrange, reduce, repeat
 
-    return Path, torch
+    return F, Path, torch
 
 
 @app.cell
@@ -38,7 +38,7 @@ def _(char_to_i, i_to_char, torch, words):
     block_size = 3
     X, Y = [], []
 
-    for word in words[:5]:
+    for word in words:
         context = [char_to_i["."]] * block_size  # Start with "...."
 
         for char in word + ".":
@@ -54,48 +54,111 @@ def _(char_to_i, i_to_char, torch, words):
 
     X = torch.tensor(X)
     Y = torch.tensor(Y)
-    return (X,)
+
+    dataset = torch.utils.data.TensorDataset(X, Y)
+
+    train_dataset, dev_dataset, test_dataset = torch.utils.data.dataset.random_split(
+        dataset, [0.8, 0.1, 0.1], generator=torch.Generator().manual_seed(1)
+    )
+
+    X_train, Y_train = train_dataset[:]
+    X_dev, Y_dev = dev_dataset[:]
+    X_test, Y_test = test_dataset[:]
+    return X_test, X_train, Y_test, Y_train
 
 
 @app.cell
 def _(char_to_i, torch):
+    # Generator (for reproducability)
+    g = torch.Generator().manual_seed(1)
+
     # Embedding matrix (maps 27 chars -> 2D space)
     C = torch.randn([len(char_to_i), 2])
-    return (C,)
-
-
-@app.cell
-def _(C, X):
-    X_embedded = C[X]
-    X_embedded.shape
-    return (X_embedded,)
-
-
-@app.cell
-def _(X_embedded, torch):
     W1 = torch.randn((6, 100))
     b1 = torch.randn(100)
-
-    h = torch.tanh(X_embedded.view(-1, 6) @ W1 + b1)
-    h.shape
-    return (h,)
-
-
-@app.cell
-def _(h, torch):
     W2 = torch.randn((100, 27))
     b2 = torch.randn(27)
-
-    logits = h @ W2 + b2
-    logits.shape
-    return (logits,)
+    parameters = [C, W1, b1, W2, b2]
+    return C, W1, W2, b1, b2, parameters
 
 
 @app.cell
-def _(logits):
-    counts = logits.exp()
-    probs = counts / counts.sum(1, keepdim=True)
+def _(
+    C,
+    F,
+    W1,
+    W2,
+    X_test,
+    X_train,
+    Y_test,
+    Y_train,
+    b1,
+    b2,
+    parameters,
+    torch,
+):
+    def _calculate_loss(x, y):
+        x_embedded = C[x]
+        h = torch.tanh(x_embedded.view(-1, 6) @ W1 + b1)
+        logits = h @ W2 + b2
 
+        loss = F.cross_entropy(logits, y)
+        return loss.item()
+
+    def calculate_training_loss():
+        return _calculate_loss(X_train, Y_train)
+
+    def calculate_test_loss():
+        return _calculate_loss(X_test, Y_test)
+
+    def _():
+        for p in parameters:
+            p.requires_grad = True
+        return
+
+    _()
+    return (calculate_training_loss,)
+
+
+@app.cell
+def _(
+    C,
+    F,
+    W1,
+    W2,
+    X_train,
+    Y_train,
+    b1,
+    b2,
+    calculate_training_loss,
+    parameters,
+    torch,
+):
+    batch_size = 128
+
+    for loop_index in range(5000):
+        batch_indices = torch.randint(0, len(X_train), (batch_size,))
+
+        X_batch = X_train[batch_indices]
+        Y_batch = Y_train[batch_indices]
+
+        # Forward pass
+        X_embedded = C[X_batch]
+        h = torch.tanh(X_embedded.view(-1, 6) @ W1 + b1)
+        logits = h @ W2 + b2
+
+        loss = F.cross_entropy(logits, Y_batch)
+
+        for p in parameters:
+            p.grad = None
+
+        loss.backward()
+
+        if loop_index % 100 == 0:
+            print(calculate_training_loss())
+
+        for p in parameters:
+            p.data -= 0.005 * p.grad
     return
 
 
