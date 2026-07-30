@@ -105,7 +105,7 @@ def _(block_size, char_to_i, torch):
 
     # Output layer
     W2 = torch.randn((hidden_dimensions, vocab_size),                        generator=g) * .1
-    b2 = torch.randn(vocab_size,                                             generator=g)
+    b2 = torch.randn(vocab_size,                                             generator=g) * .1
 
     batch_gain = torch.randn((1, hidden_dimensions)) * 0.1 + 1.0
     batch_bias = torch.randn((1, hidden_dimensions)) * 0.1
@@ -161,7 +161,7 @@ def _(
     batch_diff_sq = batch_diff**2
     batch_var = 1/(batch_size-1)*(batch_diff_sq).sum(0, keepdim=True) # note: Bessel's correction (dividing by n-1, not n)
     batch_var_inv = (batch_var + 1e-5)**-0.5
-    batch_raw = batch_diff * batch_var
+    batch_raw = batch_diff * batch_var_inv
     h_pre_activation = (batch_raw * batch_gain) + batch_bias
 
     # Non-linearity
