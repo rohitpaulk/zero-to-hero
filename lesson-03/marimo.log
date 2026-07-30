@@ -4,3 +4,9 @@
         ➜  URL: http://localhost:2718?access_token=o8-uACJJWu0n1OoHeE2r3g
 
 [W 260722 19:58:36 health:385] Neither nvidia-smi nor rocm-smi succeeded, cannot get GPU stats
+
+        Thanks for using marimo! 🌊🍃
+
+[W 260728 20:40:49 parent_poller:45] Parent server appears to have exited, shutting down.
+/Users/rohitpaulk/.local/share/uv/python/cpython-3.14.2-macos-aarch64-none/lib/python3.14/multiprocessing/resource_tracker.py:396: UserWarning: resource_tracker: There appear to be 12 leaked semaphore objects to clean up at shutdown: {'/mp-hrnn19cb', '/mp-5azh4hc6', '/mp-wkfhvkwh', '/mp-619llp1x', '/mp-lz1r6_a4', '/mp-b270cbjx', '/mp-7h97icpj', '/mp-ir3zf2m_', '/mp-tz6mv76r', '/mp-sjzbq3z_', '/mp-dhzoyruz', '/mp-mar9ia_q'}
+  warnings.warn(

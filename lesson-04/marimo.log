@@ -1,0 +1,12 @@
+
+        Edit notebook.py in your browser 📝
+
+        ➜  URL: http://localhost:2718?access_token=mQBIGIUxmcYh6WTT6XyZDA
+
+[W 260728 20:42:13 health:451] Neither nvidia-smi nor rocm-smi succeeded, cannot get GPU stats
+
+        Thanks for using marimo! 🌊🍃
+
+[W 260729 23:32:29 parent_poller:45] Parent server appears to have exited, shutting down.
+/Users/rohitpaulk/.local/share/uv/python/cpython-3.14.2-macos-aarch64-none/lib/python3.14/multiprocessing/resource_tracker.py:396: UserWarning: resource_tracker: There appear to be 12 leaked semaphore objects to clean up at shutdown: {'/mp-cah1bhn0', '/mp-m5c76s4z', '/mp-pwv9jk01', '/mp-uz749x3_', '/mp-ml9c5phi', '/mp-g1qh22pk', '/mp-bqrmdg_r', '/mp-1dla2me4', '/mp-4b1iodlr', '/mp-7phie6eh', '/mp-kjkgeyyj', '/mp-vghy6_5g'}
+  warnings.warn(
