@@ -1,6 +1,6 @@
 import marimo
 
-__generated_with = "0.23.15"
+__generated_with = "0.23.16"
 app = marimo.App(width="medium")
 
 
@@ -223,7 +223,9 @@ def _(
         counts,
         counts_sum,
         counts_sum_inv,
+        h,
         logit_maxes,
+        logits,
         logprobs,
         norm_logits,
         probs,
@@ -232,13 +234,16 @@ def _(
 
 @app.cell
 def _(
+    W2,
     Y_batch,
     batch_size,
     compare,
     counts,
     counts_sum,
     counts_sum_inv,
+    h,
     logit_maxes,
+    logits,
     logprobs,
     norm_logits,
     probs,
@@ -250,34 +255,47 @@ def _(
     compare("logprobs", dlogprobs, logprobs)
 
     # logprobs = probs.log()
-    dprobs = dlogprobs * 1/probs
-    compare('probs', dprobs, probs)
+    dprobs = dlogprobs * 1 / probs
+    compare("probs", dprobs, probs)
 
     dprobs.shape
 
-    # probs = counts * counts_sum_inv 
+    # probs = counts * counts_sum_inv
     dcounts_sum_inv = (dprobs * counts).sum(1, keepdims=True)
     dcounts = dprobs * counts_sum_inv
-    compare('counts_sum_inv', dcounts_sum_inv, counts_sum_inv)
+    compare("counts_sum_inv", dcounts_sum_inv, counts_sum_inv)
 
     # counts_sum_inv = counts_sum**-1
-    dcounts_sum = dcounts_sum_inv * (-counts_sum**-2)
-    compare('counts_sum', dcounts_sum, counts_sum)
+    dcounts_sum = dcounts_sum_inv * (-(counts_sum**-2))
+    compare("counts_sum", dcounts_sum, counts_sum)
 
     # counts_sum = counts.sum(1, keepdims=True)
     dcounts += dcounts_sum * torch.ones_like(counts)
-    compare('counts', dcounts, counts)
+    compare("counts", dcounts, counts)
 
     # counts = norm_logits.exp()
     dnorm_logits = dcounts * norm_logits.exp()
-    compare('norm_logits', dnorm_logits, norm_logits)
+    compare("norm_logits", dnorm_logits, norm_logits)
 
     # norm_logits = logits - logit_maxes
-    dlogit_maxes = (-torch.ones_like(logit_maxes) * dnorm_logits).sum(1, keepdims=True)
-    compare('logit_maxes', dlogit_maxes, logit_maxes)
+    dlogit_maxes = -dnorm_logits.sum(1, keepdims=True)
+    dlogits = dnorm_logits
+    compare("logit_maxes", dlogit_maxes, logit_maxes)
 
+    # logit_maxes = logits.max(1, keepdim=True).values
+    # logit_maxes.shape = 32 x 1 (1 item per batch entry)
+    # logits.shape = 32 x 27 (27 items per batch entry)
+    # dlogits = 32 x 27
+    max_indices = logits.argmax(dim=1, keepdim=True)
+    dlogits.scatter_add_(dim=1, index=max_indices, src=dlogit_maxes)
+    compare("logits", dlogits, logits)
 
-    # compare('logits', dlogits, logits)
+    # logits = h @ W2 + b2  # output layer
+    # 32x27  = 32x64 * 64*27 + 32*27
+    print(dlogits.shape, h.shape, W2.shape)
+    # dh = torch.ones_like(h) * W2
+    # print(dh)
+
     # compare('h', dh, h)
     # compare('W2', dW2, W2)
     # compare('b2', db2, b2)

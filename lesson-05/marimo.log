@@ -1,6 +1,6 @@
 
         Edit notebook.py in your browser 📝
 
-        ➜  URL: http://localhost:2718?access_token=fAD0yWAtJOm54lD59TnHFA
+        ➜  URL: http://localhost:2718?access_token=lUqV0iGjRd3vcDFUg-DDIg
 
-[W 260729 23:32:50 health:451] Neither nvidia-smi nor rocm-smi succeeded, cannot get GPU stats
+[W 260731 18:23:23 health:451] Neither nvidia-smi nor rocm-smi succeeded, cannot get GPU stats
