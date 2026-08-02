@@ -92,8 +92,7 @@ def _(F, nn, vocab_size, x_batch, y_batch):
         def forward(self, x, y):
             logits = self.token_embedding_table(x)
             B, T, C = logits.shape
-            print(x.shape, logits.shape, y.shape)
-            loss = F.cross_entropy(logits.view(B*T, C), y.view(-1))
+            loss = F.cross_entropy(logits.view(B * T, C), y.view(-1))
             return logits, loss
 
         def generate(self, x, max_tokens=100):
@@ -102,6 +101,7 @@ def _(F, nn, vocab_size, x_batch, y_batch):
 
     m = BigramLanguageModel(vocab_size)
     logits, loss = m(x_batch, y_batch)
+    print(logits)
     return
 
 
