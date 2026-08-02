@@ -7,8 +7,9 @@ app = marimo.App(width="medium")
 @app.cell
 def _():
     from pathlib import Path
+    import torch
 
-    return (Path,)
+    return Path, torch
 
 
 @app.cell
@@ -21,8 +22,59 @@ def _(Path):
 @app.cell
 def _(text):
     chars = sorted(set(text))
-    print(f"VOCAB: {"".join(chars)}")
+    print(f"VOCAB: {''.join(chars)}")
     print(f"{len(chars)} chars")
+    return (chars,)
+
+
+@app.cell
+def _(chars):
+    char_to_token = {c: t for t, c in enumerate(chars)}
+    token_to_char = {t: c for t, c in enumerate(chars)}
+    encode = lambda s: [char_to_token[c] for c in s]
+    decode = lambda l: "".join([token_to_char[t] for t in l])
+
+    print(encode("hello"))
+    print(decode(encode("hello")))
+    return decode, encode
+
+
+@app.cell
+def _(decode, encode, text, torch):
+    data = torch.tensor(encode(text), dtype=torch.long)
+    print(data.shape, data.dtype)
+    (data[:10], decode(data[:10].tolist()))
+    return (data,)
+
+
+@app.cell
+def _(data):
+    n = int(0.9*len(data))
+    train_data = data[:n]
+    val_data = data[n:]
+    print(f"Train data: {len(train_data):,} tokens")
+    print(f"Validation data: {len(val_data):,} tokens")
+    return train_data, val_data
+
+
+@app.cell
+def _(torch, train_data, val_data):
+    torch.manual_seed(1337)
+
+    batch_size = 4
+    context_length = 8
+
+    def get_batch(split='train'):
+        data = train_data if split == "train" else val_data
+        start_indices = torch.randint(len(data) - context_length, (batch_size,))
+        #print(start_indices)
+        x = torch.stack([data[i:i+context_length] for i in start_indices])
+        y = torch.stack([data[i+1:i+context_length+1] for i in start_indices])
+        return x, y
+
+    x, y = get_batch('train')
+    print(x[0])
+    print(y[0])
     return
 
 
