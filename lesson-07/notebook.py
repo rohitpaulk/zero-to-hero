@@ -52,7 +52,7 @@ def _(decode, encode, text, torch):
 
 @app.cell
 def _(data):
-    n = int(0.9*len(data))
+    n = int(0.9 * len(data))
     train_data = data[:n]
     val_data = data[n:]
     print(f"Train data: {len(train_data):,} tokens")
@@ -67,15 +67,15 @@ def _(torch, train_data, val_data):
     batch_size = 4
     context_length = 8
 
-    def get_batch(split='train'):
+    def get_batch(split="train"):
         data = train_data if split == "train" else val_data
         start_indices = torch.randint(len(data) - context_length, (batch_size,))
-        #print(start_indices)
-        x = torch.stack([data[i:i+context_length] for i in start_indices])
-        y = torch.stack([data[i+1:i+context_length+1] for i in start_indices])
+        # print(start_indices)
+        x = torch.stack([data[i : i + context_length] for i in start_indices])
+        y = torch.stack([data[i + 1 : i + context_length + 1] for i in start_indices])
         return x, y
 
-    x_batch, y_batch = get_batch('train')
+    x_batch, y_batch = get_batch("train")
     print(x_batch)
     print(y_batch)
     return x_batch, y_batch
@@ -91,14 +91,17 @@ def _(F, nn, vocab_size, x_batch, y_batch):
 
         def forward(self, x, y):
             logits = self.token_embedding_table(x)
+            B, T, C = logits.shape
             print(x.shape, logits.shape, y.shape)
-            loss = F.cross_entropy(logits, y)
-            return logits
+            loss = F.cross_entropy(logits.view(B*T, C), y.view(-1))
+            return logits, loss
+
+        def generate(self, x, max_tokens=100):
+            # TODO: Implement this
+            return None
 
     m = BigramLanguageModel(vocab_size)
-    out = m(x_batch, y_batch)
-    print(out.shape)
-    print(out)
+    logits, loss = m(x_batch, y_batch)
     return
 
 
