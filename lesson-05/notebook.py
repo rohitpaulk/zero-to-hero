@@ -305,27 +305,27 @@ def _(
     dh = dlogits @ W2.transpose(0, 1)
     dW2 = h.transpose(0, 1) @ dlogits
     db2 = dlogits.sum(axis=0)
-    compare('h', dh, h)
-    compare('W2', dW2, W2)
-    compare('b2', db2, b2)
+    compare("h", dh, h)
+    compare("W2", dW2, W2)
+    compare("b2", db2, b2)
 
     # h = torch.tanh(h_pre_activation)  # hidden layer
     dh_pre_activation = dh * (1 - h**2)
-    compare('h_pre_activate', dh_pre_activation, h_pre_activation)
+    compare("h_pre_activate", dh_pre_activation, h_pre_activation)
 
     # h_pre_activation = (batch_raw * batch_gain) + batch_bias
     dbatch_gain = (dh_pre_activation * batch_raw).sum(axis=0, keepdim=True)
-    dbatch_raw = (dh_pre_activation * batch_gain)
+    dbatch_raw = dh_pre_activation * batch_gain
     dbatch_bias = dh_pre_activation.sum(axis=0, keepdim=True)
-    compare('batch_gain', dbatch_gain, batch_gain)
-    compare('batch_raw', dbatch_raw, batch_raw)
-    compare('batch_bias', dbatch_bias, batch_bias)
+    compare("batch_gain", dbatch_gain, batch_gain)
+    compare("batch_raw", dbatch_raw, batch_raw)
+    compare("batch_bias", dbatch_bias, batch_bias)
 
     # batch_raw = batch_diff * batch_var_inv
     dbatch_var_inv = (dbatch_raw * batch_diff).sum(axis=0, keepdim=True)
     print(batch_raw.shape, batch_diff.shape, batch_var_inv.shape)
     dbatch_diff = dbatch_raw * batch_var_inv
-    compare('dbatch_var_inv', dbatch_var_inv, batch_var_inv)
+    compare("dbatch_var_inv", dbatch_var_inv, batch_var_inv)
 
     # compare('bnvar', dbnvar, bnvar)
     # compare('bndiff2', dbndiff2, bndiff2)
