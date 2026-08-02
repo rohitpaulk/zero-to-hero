@@ -78,30 +78,48 @@ def _(torch, train_data, val_data):
     x_batch, y_batch = get_batch("train")
     print(x_batch)
     print(y_batch)
-    return x_batch, y_batch
+    return context_length, x_batch, y_batch
 
 
 @app.cell
-def _(F, nn, vocab_size, x_batch, y_batch):
+def _(F, context_length, decode, nn, torch, vocab_size, x_batch, y_batch):
     class BigramLanguageModel(nn.Module):
         def __init__(self, vocab_size):
             # TODO: Why vocab_size * vocab_size?
             super().__init__()
             self.token_embedding_table = nn.Embedding(vocab_size, vocab_size)
 
-        def forward(self, x, y):
+        def forward(self, x, y=None):
             logits = self.token_embedding_table(x)
-            B, T, C = logits.shape
-            loss = F.cross_entropy(logits.view(B * T, C), y.view(-1))
+        
+            if y is not None:
+                B, T, C = logits.shape
+                loss = F.cross_entropy(logits.view(B * T, C), y.view(-1))
+            else:
+                loss = None
+            
             return logits, loss
 
         def generate(self, x, max_tokens=100):
-            # TODO: Implement this
-            return None
+            result = x
+        
+            for _ in range(max_tokens):
+                logits, _ = self.forward(x)
+                logits = logits[:, -1, :] # Only look at the last time step
+                probs = F.softmax(logits, dim=-1)
+                next_tokens = torch.multinomial(probs, 1)
+            
+                result = torch.cat((result, next_tokens), dim=1)
+                x = result[:, -context_length:]
+            
+            return result
 
     m = BigramLanguageModel(vocab_size)
     logits, loss = m(x_batch, y_batch)
-    print(logits)
+
+    out = m.generate(torch.zeros(1, 1, dtype=torch.long))
+    print(len(out[0]))
+    print(decode(out[0].tolist()))
     return
 
 
