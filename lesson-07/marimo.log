@@ -1,13 +1,6 @@
-Downloading openai (1.6MiB)
-Downloading pydantic-ai-slim (1.1MiB)
-Downloading pydantic-core (1.9MiB)
- Downloaded pydantic-ai-slim
- Downloaded openai
- Downloaded pydantic-core
-Installed 21 packages in 26ms
 
         Edit notebook.py in your browser 📝
 
-        ➜  URL: http://localhost:2720?access_token=pdkJqondqtc1PbDnjt06bQ
+        ➜  URL: http://localhost:2720?access_token=Gam4RXCTLsu7B5GBXTHyOg
 
-[W 260801 21:18:42 health:451] Neither nvidia-smi nor rocm-smi succeeded, cannot get GPU stats
+[W 260801 23:00:18 health:451] Neither nvidia-smi nor rocm-smi succeeded, cannot get GPU stats
