@@ -10,8 +10,9 @@ def _():
     import torch
     import torch.nn as nn
     from torch.nn import functional as F
+    import matplotlib.pyplot as plt
 
-    return F, Path, nn, torch
+    return F, Path, nn, plt, torch
 
 
 @app.cell
@@ -64,7 +65,7 @@ def _(data):
 def _(torch, train_data, val_data):
     torch.manual_seed(1337)
 
-    batch_size = 4
+    batch_size = 32
     context_length = 8
 
     def get_batch(split="train"):
@@ -75,14 +76,11 @@ def _(torch, train_data, val_data):
         y = torch.stack([data[i + 1 : i + context_length + 1] for i in start_indices])
         return x, y
 
-    x_batch, y_batch = get_batch("train")
-    print(x_batch)
-    print(y_batch)
-    return context_length, x_batch, y_batch
+    return context_length, get_batch
 
 
 @app.cell
-def _(F, context_length, decode, nn, torch, vocab_size, x_batch, y_batch):
+def _(F, context_length, nn, torch, vocab_size):
     class BigramLanguageModel(nn.Module):
         def __init__(self, vocab_size):
             # TODO: Why vocab_size * vocab_size?
@@ -91,40 +89,61 @@ def _(F, context_length, decode, nn, torch, vocab_size, x_batch, y_batch):
 
         def forward(self, x, y=None):
             logits = self.token_embedding_table(x)
-        
+
             if y is not None:
                 B, T, C = logits.shape
                 loss = F.cross_entropy(logits.view(B * T, C), y.view(-1))
             else:
                 loss = None
-            
+
             return logits, loss
 
         def generate(self, x, max_tokens=100):
             result = x
-        
+
             for _ in range(max_tokens):
                 logits, _ = self.forward(x)
-                logits = logits[:, -1, :] # Only look at the last time step
+                logits = logits[:, -1, :]  # Only look at the last time step
                 probs = F.softmax(logits, dim=-1)
                 next_tokens = torch.multinomial(probs, 1)
-            
+
                 result = torch.cat((result, next_tokens), dim=1)
                 x = result[:, -context_length:]
-            
+
             return result
 
     m = BigramLanguageModel(vocab_size)
-    logits, loss = m(x_batch, y_batch)
+    return (m,)
 
-    out = m.generate(torch.zeros(1, 1, dtype=torch.long))
-    print(len(out[0]))
-    print(decode(out[0].tolist()))
+
+@app.cell
+def _(m, torch):
+    optimizer = torch.optim.AdamW(m.parameters(), lr=1e-3)
+    return (optimizer,)
+
+
+@app.cell
+def _(get_batch, m, optimizer, plt, torch):
+    losses = []
+
+    for step_index in range(12000):        
+        x_batch, y_batch = get_batch("train")
+        logits, loss = m(x_batch, y_batch)
+
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+        losses.append(loss.item())
+
+    losses = torch.tensor(losses)
+    plt.plot(losses.reshape(-1, 10).mean(axis=1))
     return
 
 
 @app.cell
-def _():
+def _(decode, m, torch):
+    out = m.generate(torch.zeros(1, 1, dtype=torch.long))
+    print(decode(out[0].tolist()))
     return
 
 
