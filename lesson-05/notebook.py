@@ -69,16 +69,16 @@ def _(char_to_i, i_to_char, torch, words):
 
 @app.cell
 def _(torch):
-    def compare(label, expected_grad, tensor):
+    def compare(label, calculated_grad, tensor):
         actual_grad = tensor.grad
 
-        if expected_grad.shape != actual_grad.shape:
-            print(f"Expected shape: {expected_grad.shape}, got: {actual_grad.shape}")
+        if calculated_grad.shape != actual_grad.shape:
+            print(f"Calculated shape: {calculated_grad.shape}, expected: {actual_grad.shape}")
             return
 
-        is_exact_match = torch.equal(expected_grad, actual_grad)
-        is_close_match = torch.allclose(expected_grad, actual_grad)
-        max_absolute_difference = (expected_grad - actual_grad).abs().max().item()
+        is_exact_match = torch.equal(calculated_grad, actual_grad)
+        is_close_match = torch.allclose(calculated_grad, actual_grad)
+        max_absolute_difference = (calculated_grad - actual_grad).abs().max().item()
 
         print(
             f"{label:15s} | "
@@ -220,10 +220,14 @@ def _(
     loss.backward()
     loss
     return (
+        batch_diff,
+        batch_raw,
+        batch_var_inv,
         counts,
         counts_sum,
         counts_sum_inv,
         h,
+        h_pre_activation,
         logit_maxes,
         logits,
         logprobs,
@@ -236,12 +240,19 @@ def _(
 def _(
     W2,
     Y_batch,
+    b2,
+    batch_bias,
+    batch_diff,
+    batch_gain,
+    batch_raw,
     batch_size,
+    batch_var_inv,
     compare,
     counts,
     counts_sum,
     counts_sum_inv,
     h,
+    h_pre_activation,
     logit_maxes,
     logits,
     logprobs,
@@ -290,23 +301,35 @@ def _(
     dlogits.scatter_add_(dim=1, index=max_indices, src=dlogit_maxes)
     compare("logits", dlogits, logits)
 
-    # logits = h @ W2 + b2  # output layer
-    # 32x27  = 32x64 * 64*27 + 32*27
-    print(dlogits.shape, h.shape, W2.shape)
-    # dh = torch.ones_like(h) * W2
-    # print(dh)
+    # logits =   h   @   W2  +  b2
+    dh = dlogits @ W2.transpose(0, 1)
+    dW2 = h.transpose(0, 1) @ dlogits
+    db2 = dlogits.sum(axis=0)
+    compare('h', dh, h)
+    compare('W2', dW2, W2)
+    compare('b2', db2, b2)
 
-    # compare('h', dh, h)
-    # compare('W2', dW2, W2)
-    # compare('b2', db2, b2)
-    # compare('hpreact', dhpreact, hpreact)
-    # compare('bngain', dbngain, bngain)
-    # compare('bnbias', dbnbias, bnbias)
-    # compare('bnraw', dbnraw, bnraw)
-    # compare('bnvar_inv', dbnvar_inv, bnvar_inv)
+    # h = torch.tanh(h_pre_activation)  # hidden layer
+    dh_pre_activation = dh * (1 - h**2)
+    compare('h_pre_activate', dh_pre_activation, h_pre_activation)
+
+    # h_pre_activation = (batch_raw * batch_gain) + batch_bias
+    dbatch_gain = (dh_pre_activation * batch_raw).sum(axis=0, keepdim=True)
+    dbatch_raw = (dh_pre_activation * batch_gain)
+    dbatch_bias = dh_pre_activation.sum(axis=0, keepdim=True)
+    compare('batch_gain', dbatch_gain, batch_gain)
+    compare('batch_raw', dbatch_raw, batch_raw)
+    compare('batch_bias', dbatch_bias, batch_bias)
+
+    # batch_raw = batch_diff * batch_var_inv
+    dbatch_var_inv = (dbatch_raw * batch_diff).sum(axis=0, keepdim=True)
+    print(batch_raw.shape, batch_diff.shape, batch_var_inv.shape)
+    dbatch_diff = dbatch_raw * batch_var_inv
+    compare('dbatch_var_inv', dbatch_var_inv, batch_var_inv)
+
     # compare('bnvar', dbnvar, bnvar)
     # compare('bndiff2', dbndiff2, bndiff2)
-    # compare('bndiff', dbndiff, bndiff)
+    # compare('dbatch_diff', dbatch_diff, batch_diff)
     # compare('bnmeani', dbnmeani, bnmeani)
     # compare('hprebn', dhprebn, hprebn)
     # compare('embcat', dembcat, embcat)
