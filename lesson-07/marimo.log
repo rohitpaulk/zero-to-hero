@@ -1,18 +1,13 @@
+Downloading openai (1.6MiB)
+Downloading pydantic-ai-slim (1.1MiB)
+Downloading pydantic-core (1.9MiB)
+ Downloaded pydantic-ai-slim
+ Downloaded openai
+ Downloaded pydantic-core
+Installed 21 packages in 26ms
 
         Edit notebook.py in your browser 📝
 
-        ➜  URL: http://localhost:2720?access_token=dXDSxBEgHoLGL6JUGnLXkw
+        ➜  URL: http://localhost:2720?access_token=pdkJqondqtc1PbDnjt06bQ
 
-[W 260801 21:02:25 health:451] Neither nvidia-smi nor rocm-smi succeeded, cannot get GPU stats
-[W 260801 21:07:44 errors:75] The following packages are required for AI assistance: pydantic-ai-slim, openai
-error: No `pyproject.toml` found in current directory or any parent directory
-error: No `pyproject.toml` found in current directory or any parent directory
-[W 260801 21:07:50 errors:75] The following packages are required for AI assistance: pydantic-ai-slim, openai
-error: No `pyproject.toml` found in current directory or any parent directory
-error: No `pyproject.toml` found in current directory or any parent directory
-[W 260801 21:07:58 errors:75] The following packages are required for AI assistance: pydantic-ai-slim, openai
-error: No `pyproject.toml` found in current directory or any parent directory
-error: No `pyproject.toml` found in current directory or any parent directory
-[W 260801 21:08:14 errors:75] The following packages are required for AI assistance: pydantic-ai-slim, openai
-error: No `pyproject.toml` found in current directory or any parent directory
-error: No `pyproject.toml` found in current directory or any parent directory
+[W 260801 21:18:42 health:451] Neither nvidia-smi nor rocm-smi succeeded, cannot get GPU stats

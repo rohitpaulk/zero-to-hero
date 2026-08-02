@@ -14,6 +14,15 @@ def _():
 @app.cell
 def _(Path):
     text = Path("./shakespeare.txt").read_text(encoding="utf-8")
+    print(f"Text has {len(text):,} chars")
+    return (text,)
+
+
+@app.cell
+def _(text):
+    chars = sorted(set(text))
+    print(f"VOCAB: {"".join(chars)}")
+    print(f"{len(chars)} chars")
     return
 
 
