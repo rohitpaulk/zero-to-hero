@@ -71,7 +71,7 @@ class SelfAttentionHead(nn.Module):
         attn_weights = F.softmax(attn_weights, dim=-1)
 
         v = self.value_weights(x)  # B, T, head_size
-        return attn_weights @ v
+        return attn_weights @ v  # B, T, head_size
 
 
 class BigramLanguageModel(nn.Module):
@@ -79,6 +79,7 @@ class BigramLanguageModel(nn.Module):
         super().__init__()
         self.token_embedding_table = nn.Embedding(vocab_size, embedding_size)
         self.position_embedding_table = nn.Embedding(context_length, embedding_size)
+        self.attention_head = SelfAttentionHead(32)
         self.lm_head = nn.Linear(embedding_size, vocab_size)
 
     def forward(self, x, y=None):
@@ -86,6 +87,7 @@ class BigramLanguageModel(nn.Module):
         token_embeddings = self.token_embedding_table(x)  # (B, T, n_embd)
         position_embeddings = self.position_embedding_table(torch.arange(T, device=x.device))  # (T, n_embd)
         x = token_embeddings + position_embeddings  # (B, T, n_embd)
+        x = self.attention_head(x)  # (B, T, head_size)
         logits = self.lm_head(x)  # (B, T, vocab_size)
 
         if y is not None:
