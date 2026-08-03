@@ -15,4 +15,7 @@ dependencies = [
 ]
 
 [tool.marimo.formatting]
-line_length = 120
+line_length = 140
+
+[tool.ruff]
+line-length = 140

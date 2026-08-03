@@ -56,12 +56,11 @@ class BigramLanguageModel(nn.Module):
         self.lm_head = nn.Linear(embedding_size, vocab_size)
 
     def forward(self, x, y=None):
+        B, T = x.shape
         token_embeddings = self.token_embedding_table(x)  # (B, T, n_embd)
-        position_embeddings = self.position_embedding_table(
-            torch.arange(context_length, device=x.device)
-        )  # (T, n_embd)
-
-        logits = self.lm_head(token_embeddings)  # (B, T, vocab_size)
+        position_embeddings = self.position_embedding_table(torch.arange(T, device=x.device))  # (T, n_embd)
+        x = token_embeddings + position_embeddings  # (B, T, n_embd)
+        logits = self.lm_head(x)  # (B, T, vocab_size)
 
         if y is not None:
             B, T, C = logits.shape
@@ -104,9 +103,7 @@ def draw_loss_chart(losses, step_index):
     plt.plot(smoothed.tolist())
     plt.limit_size(False, False)  # don't clamp to detected terminal size
     plt.plotsize(100, 25)
-    plt.title(
-        f"Training loss — step {step_index + 1:,}/{total_steps:,} (loss {losses[-1]:.4f})"
-    )
+    plt.title(f"Training loss — step {step_index + 1:,}/{total_steps:,} (loss {losses[-1]:.4f})")
     plt.xlabel("step (x10)")
     plt.ylabel("loss")
     plt.show()
