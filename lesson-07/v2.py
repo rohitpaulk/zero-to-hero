@@ -34,7 +34,7 @@ torch.manual_seed(1337)
 
 batch_size = 32
 context_length = 8
-n_embd = 32
+embedding_size = 32
 
 
 def get_batch(split="train"):
@@ -51,8 +51,8 @@ def get_batch(split="train"):
 class BigramLanguageModel(nn.Module):
     def __init__(self):
         super().__init__()
-        self.token_embedding_table = nn.Embedding(vocab_size, n_embd)
-        self.lm_head = nn.Linear(n_embd, vocab_size)
+        self.token_embedding_table = nn.Embedding(vocab_size, embedding_size)
+        self.lm_head = nn.Linear(embedding_size, vocab_size)
 
     def forward(self, x, y=None):
         token_embeddings = self.token_embedding_table(x)  # (B, T, n_embd)
