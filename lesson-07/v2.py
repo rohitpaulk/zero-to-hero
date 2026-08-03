@@ -48,6 +48,32 @@ def get_batch(split="train"):
 # --- Model ---
 
 
+class SelfAttentionHead(nn.Module):
+    def __init__(self, head_size):
+        super().__init__()
+
+        self.head_size = head_size
+
+        self.key_weights = nn.Linear(embedding_size, head_size, bias=False)
+        self.query_weights = nn.Linear(embedding_size, head_size, bias=False)
+        self.value_weights = nn.Linear(embedding_size, head_size, bias=False)
+
+        self.register_buffer("attention_mask", torch.tril(torch.ones(context_length, context_length)) == 0)
+
+    def forward(self, x):
+        B, T, C = x.shape
+
+        k = self.key_weights(x)  # B, T, head_size
+        q = self.query_weights(x)  # B, T, head_size
+
+        attn_weights = q @ k.transpose(-1, -2) / self.head_size**0.5  # B, T, T
+        attn_weights.masked_fill_(self.attention_mask[:T, :T], float("-inf"))
+        attn_weights = F.softmax(attn_weights, dim=-1)
+
+        v = self.value_weights(x)  # B, T, head_size
+        return attn_weights @ v
+
+
 class BigramLanguageModel(nn.Module):
     def __init__(self):
         super().__init__()
