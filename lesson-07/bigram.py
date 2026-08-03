@@ -1,5 +1,6 @@
 from pathlib import Path
 
+import plotext as plt
 import torch
 import torch.nn as nn
 from torch.nn import functional as F
@@ -83,18 +84,40 @@ optimizer = torch.optim.AdamW(m.parameters(), lr=1e-3)
 
 # --- Training ---
 
-for step_index in range(12000):
+total_steps = 12000
+plot_every = 200  # redraw the live chart every N steps
+
+
+def draw_loss_chart(losses, step_index):
+    # Average every 10 steps to smooth the curve
+    smoothed = torch.tensor(losses).reshape(-1, 10).mean(axis=1)
+
+    plt.clt()  # clear the terminal
+    plt.cld()  # clear previous plot data
+    plt.plot(smoothed.tolist())
+    plt.limit_size(False, False)  # don't clamp to detected terminal size
+    plt.plotsize(100, 25)
+    plt.title(f"Training loss — step {step_index + 1:,}/{total_steps:,} (loss {losses[-1]:.4f})")
+    plt.xlabel("step (x10)")
+    plt.ylabel("loss")
+    plt.show()
+
+
+losses = []
+
+for step_index in range(total_steps):
     x_batch, y_batch = get_batch("train")
     logits, loss = m(x_batch, y_batch)
 
     optimizer.zero_grad()
     loss.backward()
     optimizer.step()
+    losses.append(loss.item())
 
-    if step_index % 1000 == 0:
-        print(f"step {step_index}: loss {loss.item():.4f}")
+    if (step_index + 1) % plot_every == 0:
+        draw_loss_chart(losses, step_index)
 
-print(f"final loss: {loss.item():.4f}")
+print(f"final loss: {losses[-1]:.4f}")
 
 # --- Generation ---
 

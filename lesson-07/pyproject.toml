@@ -9,6 +9,7 @@ dependencies = [
     "matplotlib>=3.10.8",
     "numpy>=2.4.4",
     "openai",
+    "plotext>=5.3.2",
     "pydantic-ai-slim",
     "torch>=2.11.0",
 ]
