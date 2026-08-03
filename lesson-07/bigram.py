@@ -34,6 +34,7 @@ torch.manual_seed(1337)
 
 batch_size = 32
 context_length = 8
+n_embd = 32
 
 
 def get_batch(split="train"):
@@ -48,13 +49,14 @@ def get_batch(split="train"):
 
 
 class BigramLanguageModel(nn.Module):
-    def __init__(self, vocab_size):
-        # TODO: Why vocab_size * vocab_size?
+    def __init__(self):
         super().__init__()
-        self.token_embedding_table = nn.Embedding(vocab_size, vocab_size)
+        self.token_embedding_table = nn.Embedding(vocab_size, n_embd)
+        self.lm_head = nn.Linear(n_embd, vocab_size)
 
     def forward(self, x, y=None):
-        logits = self.token_embedding_table(x)
+        token_embeddings = self.token_embedding_table(x)  # (B, T, n_embd)
+        logits = self.lm_head(token_embeddings)  # (B, T, vocab_size)
 
         if y is not None:
             B, T, C = logits.shape
@@ -79,7 +81,7 @@ class BigramLanguageModel(nn.Module):
         return result
 
 
-m = BigramLanguageModel(vocab_size)
+m = BigramLanguageModel()
 optimizer = torch.optim.AdamW(m.parameters(), lr=1e-3)
 
 # --- Training ---
